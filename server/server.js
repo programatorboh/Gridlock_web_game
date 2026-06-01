@@ -275,6 +275,15 @@ io.on('connection', (socket) => {
     });
   });
 
+  // 4.5 SEND EMOTE IN MULTIPLAYER
+  socket.on('sendEmote', ({ emoteKey }) => {
+    const roomId = socket.roomId;
+    if (roomId && rooms[roomId]) {
+      console.log(`[Emote] Room ${roomId}: Client ${socket.id} sent emote: ${emoteKey}`);
+      io.to(roomId).emit('receiveEmote', { socketId: socket.id, emoteKey });
+    }
+  });
+
   // 5. DISCONNECT
   socket.on('disconnect', () => {
     console.log(`[Socket] Client disconnected: ${socket.id}`);

@@ -20,8 +20,169 @@ const state = {
   myColor: null, // 1 = Red (Ruby Vanguard), 2 = Blue (Cobalt Storm)
   roomId: null,
   isLoggedIn: false,
-  username: null
+  username: null,
+  player1Socket: null,
+  player2Socket: null,
+  progression: {
+    level: 1,
+    xp: 0,
+    streak: 0,
+    lastWinTimestamp: 0,
+    wins: 0,
+    losses: 0
+  }
 };
+
+/* ==========================================================================
+   PROGRESSION & LEVELING LOGIC (localStorage)
+   ========================================================================== */
+function loadProgression() {
+  const data = localStorage.getItem('gridlock_progression');
+  if (data) {
+    try {
+      state.progression = JSON.parse(data);
+      state.progression.level = state.progression.level || 1;
+      state.progression.xp = state.progression.xp || 0;
+      state.progression.streak = state.progression.streak || 0;
+      state.progression.lastWinTimestamp = state.progression.lastWinTimestamp || 0;
+      state.progression.wins = state.progression.wins || 0;
+      state.progression.losses = state.progression.losses || 0;
+    } catch (e) {
+      console.error('Error parsing progression:', e);
+      resetProgressionState();
+    }
+  } else {
+    resetProgressionState();
+  }
+  checkStreakExpiry();
+  updateProgressionUI();
+}
+
+function resetProgressionState() {
+  state.progression = {
+    level: 1,
+    xp: 0,
+    streak: 0,
+    lastWinTimestamp: 0,
+    wins: 0,
+    losses: 0
+  };
+}
+
+function saveProgression() {
+  localStorage.setItem('gridlock_progression', JSON.stringify(state.progression));
+  updateProgressionUI();
+}
+
+function checkStreakExpiry() {
+  if (state.progression.lastWinTimestamp) {
+    const lastWinMidnight = new Date(state.progression.lastWinTimestamp).setHours(0,0,0,0);
+    const todayMidnight = new Date().setHours(0,0,0,0);
+    const diffDays = Math.round((todayMidnight - lastWinMidnight) / (1000 * 60 * 60 * 24));
+    if (diffDays > 1) {
+      state.progression.streak = 0;
+      saveProgression();
+    }
+  }
+}
+
+function awardXP(amount) {
+  state.progression.xp += amount;
+  let leveledUp = false;
+  
+  while (state.progression.xp >= getXpForNextLevel(state.progression.level)) {
+    state.progression.xp -= getXpForNextLevel(state.progression.level);
+    state.progression.level += 1;
+    leveledUp = true;
+  }
+  
+  saveProgression();
+  if (leveledUp) {
+    triggerLevelUpAnimation();
+  }
+}
+
+function getXpForNextLevel(level) {
+  return level * 200;
+}
+
+function recordWin() {
+  state.progression.wins += 1;
+  const now = Date.now();
+  if (state.progression.lastWinTimestamp) {
+    const lastWinMidnight = new Date(state.progression.lastWinTimestamp).setHours(0,0,0,0);
+    const todayMidnight = new Date().setHours(0,0,0,0);
+    const diffDays = Math.round((todayMidnight - lastWinMidnight) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      state.progression.streak += 1;
+    } else if (diffDays > 1) {
+      state.progression.streak = 1;
+    }
+  } else {
+    state.progression.streak = 1;
+  }
+  state.progression.lastWinTimestamp = now;
+  awardXP(100);
+}
+
+function recordLoss() {
+  state.progression.losses += 1;
+  awardXP(25);
+}
+
+function updateProgressionUI() {
+  document.getElementById('header-level-val').textContent = state.progression.level;
+  document.getElementById('header-streak-val').textContent = state.progression.streak;
+  
+  const xpNeeded = getXpForNextLevel(state.progression.level);
+  const percentage = Math.min(100, Math.max(0, (state.progression.xp / xpNeeded) * 100));
+  document.getElementById('header-xp-fill').style.width = `${percentage}%`;
+  
+  const streakBadge = document.getElementById('header-streak-badge');
+  if (state.progression.streak > 0) {
+    streakBadge.classList.add('active');
+  } else {
+    streakBadge.classList.remove('active');
+  }
+}
+
+function triggerLevelUpAnimation() {
+  document.getElementById('levelup-badge').textContent = state.progression.level;
+  updateLanguageDOM();
+  const overlay = document.getElementById('levelup-overlay');
+  if (overlay) {
+    overlay.classList.add('open');
+  }
+  playSound('victory', 1.25);
+}
+
+/* ==========================================================================
+   SPEECH BUBBLES & EMOTE TRIGGERS
+   ========================================================================== */
+let speechBubbleTimeouts = { 1: null, 2: null };
+
+function showEmoteBubble(playerNum, emoteKey) {
+  const bubble = document.getElementById(`p${playerNum}-speech-bubble`);
+  if (!bubble) return;
+  
+  const lang = state.language;
+  const translationKey = `emote_${emoteKey}`;
+  const text = translations[lang][translationKey] || emoteKey;
+  
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  
+  playSound('occupy', 2.0); // High pitch click chime
+  
+  if (speechBubbleTimeouts[playerNum]) {
+    clearTimeout(speechBubbleTimeouts[playerNum]);
+  }
+  
+  speechBubbleTimeouts[playerNum] = setTimeout(() => {
+    bubble.classList.remove('show');
+  }, 2000);
+}
 
 // Web Audio API Synthesizer (Premium Futuristic Sounds)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -183,6 +344,13 @@ const translations = {
     awaitingStatus: "Awaiting secondary connection link connection...",
     progressionBackup: "Progression Backup",
     loginDesc: "Log in to save your 3-day streak and enter the global leaderboards!",
+    levelupTitle: "RANK UPGRADE!",
+    levelupSubtitle: "You have ascended to a new tactical tier.",
+    btnLevelupClose: "Accept Rank Upgrade",
+    emote_gg: "GG!",
+    emote_nice: "Nice move!",
+    emote_oops: "Oops...",
+    emote_calculated: "Calculated.",
     challengeModalTitle: "<i class=\"fa-solid fa-crosshairs fa-fade\"></i> CHALLENGE RECEIVED",
     challengeModalDesc: "You have been challenged to an online Gridlock duel!",
     challengeRoomLabel: "Room Code:",
@@ -260,6 +428,13 @@ const translations = {
     awaitingStatus: "Čakanie na pripojenie druhého hráča...",
     progressionBackup: "Záloha progresu",
     loginDesc: "Prihláste sa, aby ste si uložili svoj 3-dňový streak a dostali sa do globálneho rebríčka!",
+    levelupTitle: "NOVÝ LEVEL!",
+    levelupSubtitle: "Dosiahli ste novú taktickú úroveň.",
+    btnLevelupClose: "Prijať hodnosť",
+    emote_gg: "GG!",
+    emote_nice: "Skvelý ťah!",
+    emote_oops: "Ups...",
+    emote_calculated: "Vypočítané.",
     challengeModalTitle: "<i class=\"fa-solid fa-crosshairs fa-fade\"></i> PRIJATÁ VÝZVA",
     challengeModalDesc: "Boli ste vyzvaní na online súboj v hre Gridlock!",
     challengeRoomLabel: "Kód miestnosti:",
@@ -347,7 +522,10 @@ function updateLanguageDOM() {
     'challenge-modal-desc': dict.challengeModalDesc,
     'challenge-room-label': dict.challengeRoomLabel,
     'btn-accept-text': dict.btnAcceptChallenge,
-    'btn-decline-text': dict.btnDeclineChallenge
+    'btn-decline-text': dict.btnDeclineChallenge,
+    'levelup-title': dict.levelupTitle,
+    'levelup-subtitle': dict.levelupSubtitle,
+    'btn-levelup-close': dict.btnLevelupClose
   };
 
   for (const [id, text] of Object.entries(elMap)) {
@@ -521,11 +699,19 @@ function setupSocketListeners() {
     state.aiLock = false;
     state.gameMode = 'online';
 
+    // Cache socket IDs for identifying emotes sender
+    state.player1Socket = player1Socket;
+    state.player2Socket = player2Socket;
+
     // Assign playing client color role based on socket connection ID
     if (socket.id === player1Socket) {
       state.myColor = 1;
+      document.getElementById('p1-emote-trigger').classList.remove('hidden');
+      document.getElementById('p2-emote-trigger').classList.add('hidden');
     } else if (socket.id === player2Socket) {
       state.myColor = 2;
+      document.getElementById('p2-emote-trigger').classList.remove('hidden');
+      document.getElementById('p1-emote-trigger').classList.add('hidden');
     }
 
     // Initialize board caching
@@ -565,6 +751,15 @@ function setupSocketListeners() {
     renderBoard();
     updateUI();
     endGame();
+  });
+
+  // 4.6 Receive multiplayer emote
+  socket.on('receiveEmote', ({ socketId, emoteKey }) => {
+    let senderNum = 1;
+    if (socketId === state.player2Socket) {
+      senderNum = 2;
+    }
+    showEmoteBubble(senderNum, emoteKey);
   });
 
   // 5. Opponent disconnects during match
@@ -686,6 +881,14 @@ function initGame(mode) {
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('game-arena').classList.add('hidden');
     
+    // Hide and reset all emotes elements
+    document.getElementById('p1-emote-trigger').classList.add('hidden');
+    document.getElementById('p2-emote-trigger').classList.add('hidden');
+    document.getElementById('p1-emote-popover').classList.remove('open');
+    document.getElementById('p2-emote-popover').classList.remove('open');
+    document.getElementById('p1-speech-bubble').classList.remove('show');
+    document.getElementById('p2-speech-bubble').classList.remove('show');
+
     // Disconnect active multiplayer socket to clear room listings
     if (state.socket) {
       state.socket.disconnect();
@@ -1050,6 +1253,56 @@ function endGame() {
   msgEl.textContent = winnerMsg;
   
   overlay.className = 'modal-overlay open';
+
+  // Progression system update: win/loss handling
+  if (state.gameMode === 'ai' || state.gameMode === 'online') {
+    let didWin = false;
+    let didLose = false;
+
+    if (p1Cells > p2Cells) {
+      if (state.gameMode === 'ai') {
+        didWin = true; // P1 is always user in AI mode
+      } else { // online
+        didWin = (state.myColor === 1);
+        didLose = !didWin;
+      }
+    } else if (p2Cells > p1Cells) {
+      if (state.gameMode === 'ai') {
+        didLose = true;
+      } else { // online
+        didWin = (state.myColor === 2);
+        didLose = !didWin;
+      }
+    } else {
+      // Tie breaker by total power
+      const p1Power = state.scores[1].power;
+      const p2Power = state.scores[2].power;
+      if (p1Power > p2Power) {
+        if (state.gameMode === 'ai') {
+          didWin = true;
+        } else {
+          didWin = (state.myColor === 1);
+          didLose = !didWin;
+        }
+      } else if (p2Power > p1Power) {
+        if (state.gameMode === 'ai') {
+          didLose = true;
+        } else {
+          didWin = (state.myColor === 2);
+          didLose = !didWin;
+        }
+      } else {
+        // Absolute draw: count as loss for streak/XP
+        didLose = true;
+      }
+    }
+
+    if (didWin) {
+      recordWin();
+    } else if (didLose) {
+      recordLoss();
+    }
+  }
 }
 
 function updateUI() {
@@ -1185,6 +1438,58 @@ if (btnCopy) {
   });
 }
 
+// Level Up Modal Close Interaction
+const levelupOverlay = document.getElementById('levelup-overlay');
+const btnLevelupClose = document.getElementById('btn-levelup-close');
+if (btnLevelupClose) {
+  btnLevelupClose.addEventListener('click', () => {
+    levelupOverlay.classList.remove('open');
+  });
+}
+
+// Emote triggers toggle
+const p1EmoteTrigger = document.getElementById('p1-emote-trigger');
+const p2EmoteTrigger = document.getElementById('p2-emote-trigger');
+const p1EmotePopover = document.getElementById('p1-emote-popover');
+const p2EmotePopover = document.getElementById('p2-emote-popover');
+
+if (p1EmoteTrigger) {
+  p1EmoteTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    p1EmotePopover.classList.toggle('open');
+  });
+}
+
+if (p2EmoteTrigger) {
+  p2EmoteTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    p2EmotePopover.classList.toggle('open');
+  });
+}
+
+// Close popovers when clicking anywhere else on page
+document.addEventListener('click', () => {
+  if (p1EmotePopover) p1EmotePopover.classList.remove('open');
+  if (p2EmotePopover) p2EmotePopover.classList.remove('open');
+});
+
+// Emote options clicks
+document.querySelectorAll('.emote-popover .btn-emote-opt').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const emoteKey = btn.getAttribute('data-emote');
+    const popover = btn.closest('.emote-popover');
+    if (popover) {
+      popover.classList.remove('open');
+    }
+    
+    // Show locally immediately and send to remote opponent
+    if (state.socket && state.roomId) {
+      state.socket.emit('sendEmote', { emoteKey });
+    }
+  });
+});
+
 // Restart Game interactions
 document.getElementById('btn-restart').addEventListener('click', () => {
   if (state.gameMode === 'online') {
@@ -1287,6 +1592,9 @@ document.getElementById('btn-mode-online').addEventListener('click', () => {
 
 // Bootstrapper / room analyzer
 window.addEventListener('DOMContentLoaded', () => {
+  // Load progression level and stats from storage
+  loadProgression();
+
   // Check URL query parameters for invitation rooms
   const params = new URLSearchParams(window.location.search);
   const roomId = params.get('room');

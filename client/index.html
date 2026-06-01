@@ -28,8 +28,21 @@
   <div class="bg-glow bg-glow-2"></div>
   <div class="grid-overlay"></div>
 
-  <!-- Header Login & Language Switcher -->
+  <!-- Header Login, Progression & Language Switcher -->
   <div class="top-nav">
+    <div class="progression-panel" id="progression-panel">
+      <div class="streak-badge" id="header-streak-badge" title="Daily Streak">
+        <i class="fa-solid fa-fire"></i> <span id="header-streak-val">0</span>
+      </div>
+      <div class="level-display" title="Player Level">
+        <span class="level-label">LVL</span>
+        <span class="level-val" id="header-level-val">1</span>
+      </div>
+      <div class="xp-bar-container" title="XP Progress to Next Level">
+        <div class="xp-bar-fill" id="header-xp-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
     <button class="btn-lang" id="btn-lang" title="Switch language">SK</button>
     <button class="btn-login-header" id="btn-login-header">
       <i class="fa-solid fa-user-shield"></i> <span id="header-login-text">Sign In / Save Progress</span>
@@ -85,10 +98,25 @@
             <i class="fa-solid fa-fire-flame-curved"></i>
           </div>
           <div class="player-meta">
-            <h2 id="p1-name-display">Player 1</h2>
+            <div class="player-name-wrapper">
+              <h2 id="p1-name-display">Player 1</h2>
+              <div class="emote-container">
+                <button class="btn-emote-trigger hidden" id="p1-emote-trigger" title="Send Emote">
+                  <i class="fa-regular fa-face-smile"></i>
+                </button>
+                <div class="emote-popover" id="p1-emote-popover">
+                  <button class="btn-emote-opt" data-emote="gg">GG!</button>
+                  <button class="btn-emote-opt" data-emote="nice">Nice move!</button>
+                  <button class="btn-emote-opt" data-emote="oops">Oops...</button>
+                  <button class="btn-emote-opt" data-emote="calculated">Calculated.</button>
+                </div>
+              </div>
+            </div>
             <span class="player-color-name" id="p1-color-title">Ruby Vanguard</span>
           </div>
         </div>
+
+        <div class="speech-bubble" id="p1-speech-bubble">GG!</div>
         
         <div class="player-stats">
           <div class="stat-box">
@@ -143,10 +171,25 @@
             <i class="fa-solid fa-bolt-lightning"></i>
           </div>
           <div class="player-meta">
-            <h2 id="p2-name-display">Player 2</h2>
+            <div class="player-name-wrapper">
+              <h2 id="p2-name-display">Player 2</h2>
+              <div class="emote-container">
+                <button class="btn-emote-trigger hidden" id="p2-emote-trigger" title="Send Emote">
+                  <i class="fa-regular fa-face-smile"></i>
+                </button>
+                <div class="emote-popover" id="p2-emote-popover">
+                  <button class="btn-emote-opt" data-emote="gg">GG!</button>
+                  <button class="btn-emote-opt" data-emote="nice">Nice move!</button>
+                  <button class="btn-emote-opt" data-emote="oops">Oops...</button>
+                  <button class="btn-emote-opt" data-emote="calculated">Calculated.</button>
+                </div>
+              </div>
+            </div>
             <span class="player-color-name" id="p2-color-title">Cobalt Storm</span>
           </div>
         </div>
+
+        <div class="speech-bubble" id="p2-speech-bubble">GG!</div>
         
         <div class="player-stats">
           <div class="stat-box">
@@ -307,6 +350,19 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- LEVEL UP CONGRATULATIONS OVERLAY -->
+  <div class="modal-overlay" id="levelup-overlay">
+    <div class="levelup-box">
+      <div class="levelup-glow">
+        <i class="fa-solid fa-circle-up fa-bounce"></i>
+      </div>
+      <h2 id="levelup-title">RANK UPGRADE!</h2>
+      <p id="levelup-subtitle">You have ascended to a new tactical tier.</p>
+      <div class="level-badge" id="levelup-badge">2</div>
+      <button class="btn btn-primary" id="btn-levelup-close">Accept Rank Upgrade</button>
     </div>
   </div>
 
