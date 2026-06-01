@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRIDLOCK // Tactical Grid Conquest</title>
+  <!-- SEO & Social Meta Tags -->
+  <meta name="description" content="A premium tactical grid-based multiplayer game. Claim adjacent cells, reinforce your power, and capture your opponent's territory to avoid getting Gridlocked!">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <!-- Premium Cyberpunk Background Elements -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Header Login & Language Switcher -->
+  <div class="top-nav">
+    <button class="btn-lang" id="btn-lang" title="Switch language">SK</button>
+    <button class="btn-login-header" id="btn-login-header">
+      <i class="fa-solid fa-user-shield"></i> <span id="header-login-text">Sign In / Save Progress</span>
+    </button>
+  </div>
+
+  <main class="app-container">
+    <!-- Header -->
+    <header class="game-header">
+      <h1 class="logo" id="main-logo">GRID<span class="highlight">LOCK</span></h1>
+      <p class="subtitle" id="main-subtitle">TACTICAL GRID CONQUEST</p>
+    </header>
+
+    <!-- 1. MAIN MENU SCREEN -->
+    <section class="main-menu" id="main-menu">
+      <div class="menu-card">
+        <h2 id="menu-title">SELECT COMBAT MODE</h2>
+        <div class="menu-options">
+          <button class="btn-menu-opt" id="btn-mode-ai">
+            <div class="opt-icon"><i class="fa-solid fa-microchip"></i></div>
+            <div class="opt-desc">
+              <h3 id="mode-ai-title">Player vs. Computer (AI)</h3>
+              <p id="mode-ai-desc">Face off against the tactical algorithm Cobalt AI</p>
+            </div>
+          </button>
+          
+          <button class="btn-menu-opt" id="btn-mode-local">
+            <div class="opt-icon"><i class="fa-solid fa-people-arrows"></i></div>
+            <div class="opt-desc">
+              <h3 id="mode-local-title">Local Multiplayer</h3>
+              <p id="mode-local-desc">Two-player battlefield on a single screen</p>
+            </div>
+          </button>
+          
+          <button class="btn-menu-opt" id="btn-mode-online">
+            <div class="opt-icon"><i class="fa-solid fa-globe"></i></div>
+            <div class="opt-desc">
+              <h3 id="mode-online-title">Play with a Friend (Online)</h3>
+              <p id="mode-online-desc">Create a custom room and share a match connection link</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. GAME ARENA (Hidden by default) -->
+    <div class="game-layout hidden" id="game-arena">
+      <!-- Player Panel: Left (Red Player) -->
+      <section class="player-panel red-player-panel active" id="panel-p1">
+        <div class="player-glow"></div>
+        <div class="player-header">
+          <div class="player-avatar">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+          </div>
+          <div class="player-meta">
+            <h2 id="p1-name-display">Player 1</h2>
+            <span class="player-color-name" id="p1-color-title">Ruby Vanguard</span>
+          </div>
+        </div>
+        
+        <div class="player-stats">
+          <div class="stat-box">
+            <span class="stat-label" id="p1-stat-cells">Cells Owned</span>
+            <span class="stat-value" id="p1-cells">1</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label" id="p1-stat-power">Total Power</span>
+            <span class="stat-value" id="p1-power">1</span>
+          </div>
+        </div>
+        
+        <div class="turn-indicator" id="p1-turn-indicator">
+          <span class="pulse-dot"></span> Active Turn
+        </div>
+      </section>
+
+      <!-- Center Board and Game Info -->
+      <section class="board-area">
+        <div class="info-bar">
+          <div class="status-message" id="game-status">
+            Game started! Red Vanguard to move.
+          </div>
+        </div>
+
+        <!-- 6x6 Grid Container -->
+        <div class="grid-card">
+          <div class="grid-board" id="board" aria-label="Gridlock Game Board">
+            <!-- cells dynamically injected -->
+          </div>
+        </div>
+
+        <!-- Controls / Actions Guide -->
+        <div class="action-dock">
+          <button class="btn btn-secondary" id="btn-rules" title="Show gameplay guide">
+            <i class="fa-solid fa-circle-question"></i> <span id="btn-rules-text">Rules</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-back-menu" title="Back to main menu">
+            <i class="fa-solid fa-arrow-left"></i> <span id="btn-menu-text">Menu</span>
+          </button>
+          <button class="btn btn-primary" id="btn-restart" title="Restart the battle">
+            <i class="fa-solid fa-arrows-rotate"></i> <span id="btn-reset-text">Reset</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Player Panel: Right (Blue Player) -->
+      <section class="player-panel blue-player-panel" id="panel-p2">
+        <div class="player-glow"></div>
+        <div class="player-header">
+          <div class="player-avatar" id="p2-avatar-el">
+            <i class="fa-solid fa-bolt-lightning"></i>
+          </div>
+          <div class="player-meta">
+            <h2 id="p2-name-display">Player 2</h2>
+            <span class="player-color-name" id="p2-color-title">Cobalt Storm</span>
+          </div>
+        </div>
+        
+        <div class="player-stats">
+          <div class="stat-box">
+            <span class="stat-label" id="p2-stat-cells">Cells Owned</span>
+            <span class="stat-value" id="p2-cells">1</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label" id="p2-stat-power">Total Power</span>
+            <span class="stat-value" id="p2-power">1</span>
+          </div>
+        </div>
+        
+        <div class="turn-indicator" id="p2-turn-indicator">
+          <span class="pulse-dot"></span> Active Turn
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Rules Modal (Visual Rules Included) -->
+  <div class="modal-overlay" id="rules-modal">
+    <div class="modal-box rules-box">
+      <button class="modal-close" id="rules-close">&times;</button>
+      <h2><i class="fa-solid fa-gamepad"></i> <span id="rules-title">Tactical Intel</span></h2>
+      <div class="modal-content">
+        <p id="rules-intro"><strong>Gridlock</strong> is a highly tactical turn-based territorial conquest played on a 6x6 grid. Your goal is to dominate the grid and lock down your opponent.</p>
+        
+        <h3 id="rules-subtitle">Action Options (Choose one per turn):</h3>
+        <ul class="rules-list-visual">
+          <!-- OCCUPY ACTION -->
+          <li>
+            <div class="rule-header">
+              <div class="action-badge occupy">Occupy</div>
+              <span id="rules-occupy-desc">Click any unoccupied <strong>gray cell</strong> adjacent to a cell you already control. It starts with <strong>Power 1</strong>.</span>
+            </div>
+            
+            <div class="mini-tutorial-container">
+              <div class="mini-grid">
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+                <div class="mini-cell p1 active-cell"><div class="mini-orb">1</div></div>
+                <div class="mini-cell empty target-cell">
+                  <div class="mini-orb ghost">1</div>
+                  <div class="tut-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div class="mini-cell empty"></div>
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+              </div>
+            </div>
+          </li>
+          
+          <!-- REINFORCE ACTION -->
+          <li>
+            <div class="rule-header">
+              <div class="action-badge reinforce">Reinforce</div>
+              <span id="rules-reinforce-desc">Click any cell <strong>you currently control</strong> to increase its power by <strong>+1</strong>.</span>
+            </div>
+            
+            <div class="mini-tutorial-container">
+              <div class="mini-grid">
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+                <div class="mini-cell empty"></div>
+                <div class="mini-cell p1 pulse-cell">
+                  <div class="mini-orb count-orb">2</div>
+                  <div class="power-bubble">+1</div>
+                </div>
+                <div class="mini-cell empty"></div>
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+              </div>
+            </div>
+          </li>
+          
+          <!-- ATTACK ACTION -->
+          <li>
+            <div class="rule-header">
+              <div class="action-badge attack">Attack</div>
+              <span id="rules-attack-desc">Click any <strong>adjacent opponent's cell</strong>. Capture it if your attacking cell has **STRICTLY GREATER** power than the defender! Captured cell resets to <strong>Power 1</strong>.</span>
+            </div>
+            
+            <div class="mini-tutorial-container">
+              <div class="mini-grid">
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+                <div class="mini-cell p1 strong-cell"><div class="mini-orb">3</div></div>
+                <div class="mini-cell p2 vulnerable-cell">
+                  <div class="mini-orb">1</div>
+                  <div class="laser-beam"><i class="fa-solid fa-bolt"></i></div>
+                </div>
+                <div class="mini-cell empty"></div>
+                <div class="mini-cell empty"></div><div class="mini-cell empty"></div><div class="mini-cell empty"></div>
+              </div>
+            </div>
+          </li>
+        </ul>
+        
+        <p id="rules-victory-text"><strong>Victory:</strong> Ends when board is full or a player has 0 cells. Player controlling the most cells wins the match.</p>
+      </div>
+      <button class="btn btn-primary" id="btn-close-rules">Understood</button>
+    </div>
+  </div>
+
+  <!-- 3. ONLINE MATCHING & INVITE MODAL -->
+  <div class="modal-overlay" id="waiting-modal">
+    <div class="modal-box waiting-box">
+      <button class="modal-close" id="waiting-close">&times;</button>
+      <h2><i class="fa-solid fa-satellite-dish fa-fade"></i> <span id="waiting-modal-title">Awaiting Competitor</span></h2>
+      <div class="modal-content">
+        <p id="waiting-modal-desc">Share this encrypted invite link with your friend to initiate the tactical dual:</p>
+        <div class="invite-link-container">
+          <input type="text" id="invite-link-input" readonly value="http://localhost:3000/?room=XYZ">
+          <button class="btn btn-primary" id="btn-copy-link">
+            <i class="fa-solid fa-copy"></i> <span id="copy-btn-text">Copy</span>
+          </button>
+        </div>
+        <div class="waiting-status">
+          <div class="spinner"></div>
+          <span id="waiting-status-text">Awaiting secondary connection link connection...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SIGN IN / PROGRESSION MODAL -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-box login-box">
+      <button class="modal-close" id="login-close">&times;</button>
+      <h2><i class="fa-solid fa-user-shield"></i> <span id="login-modal-title">Progression Backup</span></h2>
+      <div class="modal-content">
+        <p id="login-modal-desc">Log in to save your 3-day streak and enter the global leaderboards!</p>
+        
+        <div class="oauth-login-stack">
+          <button class="btn-oauth google" id="modal-google-login">
+            <i class="fa-brands fa-google"></i> Google Sign In
+          </button>
+          <button class="btn-oauth discord" id="modal-discord-login">
+            <i class="fa-brands fa-discord"></i> Discord Sign In
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast / Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Game Over Screen -->
+  <div class="modal-overlay" id="gameover-overlay">
+    <div class="gameover-box">
+      <div class="trophy-glow">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h2 id="winner-title">COBALT STORM WINS!</h2>
+      <p id="winner-message">Dominating the cyber arena with 24 cells owned.</p>
+      
+      <!-- Voluntary Registration Promotion Panel -->
+      <div class="promo-box">
+        <p class="promo-title" id="promo-title"><i class="fa-solid fa-ranking-star"></i> This match advanced your global standing!</p>
+        <p class="promo-desc" id="promo-desc">Secure your progress and preserve your Daily Streak.</p>
+        
+        <div class="oauth-buttons">
+          <button class="btn-oauth google" id="btn-google-login">
+            <i class="fa-brands fa-google"></i> Google
+          </button>
+          <button class="btn-oauth discord" id="btn-discord-login">
+            <i class="fa-brands fa-discord"></i> Discord
+          </button>
+        </div>
+      </div>
+
+      <div class="gameover-actions">
+        <button class="btn btn-primary btn-large" id="btn-rematch">
+          <i class="fa-solid fa-gamepad"></i> <span id="btn-rematch-text">Initiate Rematch</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound Effects Synth -->
+  
+  <script src="app.js"></script>
+</body>
+</html>
