@@ -287,6 +287,29 @@
     </div>
   </div>
 
+  <!-- 5. INCOMING CHALLENGE MODAL -->
+  <div class="modal-overlay" id="challenge-modal">
+    <div class="modal-box challenge-box">
+      <button class="modal-close" id="challenge-close">&times;</button>
+      <h2><i class="fa-solid fa-gamepad fa-fade"></i> <span id="challenge-modal-title">Incoming Tactical Duel</span></h2>
+      <div class="modal-content">
+        <p id="challenge-modal-desc">You have been challenged to an online Gridlock match!</p>
+        <div class="challenge-info">
+          <span class="challenge-label" id="challenge-room-label">Room Code:</span>
+          <span class="challenge-code" id="challenge-room-code">XXXXXX</span>
+        </div>
+        <div class="challenge-actions">
+          <button class="btn btn-primary btn-large" id="btn-accept-challenge">
+            <i class="fa-solid fa-crosshairs"></i> <span id="btn-accept-text">Accept Duel</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-decline-challenge">
+            <span id="btn-decline-text">Decline</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast / Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 

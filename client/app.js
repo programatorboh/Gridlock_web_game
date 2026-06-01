@@ -183,6 +183,12 @@ const translations = {
     awaitingStatus: "Awaiting secondary connection link connection...",
     progressionBackup: "Progression Backup",
     loginDesc: "Log in to save your 3-day streak and enter the global leaderboards!",
+    challengeModalTitle: "<i class=\"fa-solid fa-crosshairs fa-fade\"></i> CHALLENGE RECEIVED",
+    challengeModalDesc: "You have been challenged to an online Gridlock duel!",
+    challengeRoomLabel: "Room Code:",
+    btnAcceptChallenge: "Accept Duel",
+    btnDeclineChallenge: "Decline",
+    toastConnecting: "Establishing secure battlefield connection...",
     googleSignIn: "<i class=\"fa-brands fa-google\"></i> Google Sign In",
     discordSignIn: "<i class=\"fa-brands fa-discord\"></i> Discord Sign In",
     promoTitle: "<i class=\"fa-solid fa-ranking-star\"></i> This match advanced your global standing!",
@@ -254,6 +260,12 @@ const translations = {
     awaitingStatus: "Čakanie na pripojenie druhého hráča...",
     progressionBackup: "Záloha progresu",
     loginDesc: "Prihláste sa, aby ste si uložili svoj 3-dňový streak a dostali sa do globálneho rebríčka!",
+    challengeModalTitle: "<i class=\"fa-solid fa-crosshairs fa-fade\"></i> PRIJATÁ VÝZVA",
+    challengeModalDesc: "Boli ste vyzvaní na online súboj v hre Gridlock!",
+    challengeRoomLabel: "Kód miestnosti:",
+    btnAcceptChallenge: "Prijať súboj",
+    btnDeclineChallenge: "Odmietnuť",
+    toastConnecting: "Nadväzujem zabezpečené spojenie s bojiskom...",
     googleSignIn: "<i class=\"fa-brands fa-google\"></i> Prihlásiť sa cez Google",
     discordSignIn: "<i class=\"fa-brands fa-discord\"></i> Prihlásiť sa cez Discord",
     promoTitle: "<i class=\"fa-solid fa-ranking-star\"></i> Tento zápas ťa posunul v globálnom rebríčku!",
@@ -330,7 +342,12 @@ function updateLanguageDOM() {
     'modal-discord-login': dict.discordSignIn,
     'promo-title': dict.promoTitle,
     'promo-desc': dict.promoDesc,
-    'btn-rematch-text': dict.rematchBtn
+    'btn-rematch-text': dict.rematchBtn,
+    'challenge-modal-title': dict.challengeModalTitle,
+    'challenge-modal-desc': dict.challengeModalDesc,
+    'challenge-room-label': dict.challengeRoomLabel,
+    'btn-accept-text': dict.btnAcceptChallenge,
+    'btn-decline-text': dict.btnDeclineChallenge
   };
 
   for (const [id, text] of Object.entries(elMap)) {
@@ -1088,6 +1105,55 @@ if (waitingClose) {
   });
 }
 
+// Incoming Challenge Modal Interactions
+const challengeModal = document.getElementById('challenge-modal');
+const challengeClose = document.getElementById('challenge-close');
+const btnAcceptChallenge = document.getElementById('btn-accept-challenge');
+const btnDeclineChallenge = document.getElementById('btn-decline-challenge');
+
+let incomingRoomId = null;
+
+if (challengeClose) {
+  challengeClose.addEventListener('click', () => {
+    challengeModal.classList.remove('open');
+    // clean up URL search parameters to avoid re-triggering modal
+    window.history.replaceState({}, document.title, window.location.pathname);
+    initGame(); // standard menu
+  });
+}
+
+if (btnDeclineChallenge) {
+  btnDeclineChallenge.addEventListener('click', () => {
+    challengeModal.classList.remove('open');
+    // clean up URL search parameters to avoid re-triggering modal
+    window.history.replaceState({}, document.title, window.location.pathname);
+    initGame(); // standard menu
+  });
+}
+
+if (btnAcceptChallenge) {
+  btnAcceptChallenge.addEventListener('click', () => {
+    if (!incomingRoomId) return;
+    
+    challengeModal.classList.remove('open');
+    const lang = state.language;
+    showToast(translations[lang].toastConnecting, 'success');
+    
+    // Accept match invitation explicitly by connecting socket and joining
+    connectSocket()
+      .then(socket => {
+        socket.emit('joinRoom', { roomId: incomingRoomId });
+        // Clean URL parameter to avoid loop connections
+        window.history.replaceState({}, document.title, window.location.pathname);
+      })
+      .catch(err => {
+        console.error('[Challenge Accept] Connect failed:', err);
+        showToast('Connection failed. Returning to menu.', 'error');
+        initGame(); // fallback
+      });
+  });
+}
+
 // Copy invite matching code connection links to clipboard
 const btnCopy = document.getElementById('btn-copy-link');
 if (btnCopy) {
@@ -1226,21 +1292,24 @@ window.addEventListener('DOMContentLoaded', () => {
   const roomId = params.get('room');
 
   if (roomId) {
-    console.log('[Autoload] Connecting to join Room code:', roomId);
+    console.log('[Challenge Invite Detected] Room code:', roomId);
+    incomingRoomId = roomId;
     
     // Set active translation templates immediately
     updateLanguageDOM();
 
-    connectSocket()
-      .then(socket => {
-        socket.emit('joinRoom', { roomId });
-        // Clean url param code to avoid refresh loops
-        window.history.replaceState({}, document.title, window.location.pathname);
-      })
-      .catch(err => {
-        console.error('[Autoload Join] Failed:', err);
-        initGame(); // fallback to menu
-      });
+    // Populate the challenge modal room code element
+    const codeEl = document.getElementById('challenge-room-code');
+    if (codeEl) {
+      codeEl.textContent = roomId;
+    }
+
+    // Open challenge invite modal instead of immediately joining!
+    // This blocks automatic bot/monitor pings from filling rooms
+    const challengeModal = document.getElementById('challenge-modal');
+    if (challengeModal) {
+      challengeModal.classList.add('open');
+    }
   } else {
     initGame(); // starts at standard menu
   }
