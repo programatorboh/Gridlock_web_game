@@ -98,20 +98,7 @@
             <i class="fa-solid fa-fire-flame-curved"></i>
           </div>
           <div class="player-meta">
-            <div class="player-name-wrapper">
-              <h2 id="p1-name-display">Player 1</h2>
-              <div class="emote-container">
-                <button class="btn-emote-trigger hidden" id="p1-emote-trigger" title="Send Emote">
-                  <i class="fa-regular fa-face-smile"></i>
-                </button>
-                <div class="emote-popover" id="p1-emote-popover">
-                  <button class="btn-emote-opt" data-emote="gg">GG!</button>
-                  <button class="btn-emote-opt" data-emote="nice">Nice move!</button>
-                  <button class="btn-emote-opt" data-emote="oops">Oops...</button>
-                  <button class="btn-emote-opt" data-emote="calculated">Calculated.</button>
-                </div>
-              </div>
-            </div>
+            <h2 id="p1-name-display">Player 1</h2>
             <span class="player-color-name" id="p1-color-title">Ruby Vanguard</span>
           </div>
         </div>
@@ -149,6 +136,14 @@
           </div>
         </div>
 
+        <!-- Emote Panel (Visible only in active Online matches) -->
+        <div class="emote-panel hidden" id="emote-panel">
+          <button class="btn-emote-neon" id="btn-emote-gg" data-emote="gg">GG!</button>
+          <button class="btn-emote-neon" id="btn-emote-nice" data-emote="nice">Nice move!</button>
+          <button class="btn-emote-neon" id="btn-emote-oops" data-emote="oops">Oops...</button>
+          <button class="btn-emote-neon" id="btn-emote-calculated" data-emote="calculated">Calculated.</button>
+        </div>
+
         <!-- Controls / Actions Guide -->
         <div class="action-dock">
           <button class="btn btn-secondary" id="btn-rules" title="Show gameplay guide">
@@ -171,20 +166,7 @@
             <i class="fa-solid fa-bolt-lightning"></i>
           </div>
           <div class="player-meta">
-            <div class="player-name-wrapper">
-              <h2 id="p2-name-display">Player 2</h2>
-              <div class="emote-container">
-                <button class="btn-emote-trigger hidden" id="p2-emote-trigger" title="Send Emote">
-                  <i class="fa-regular fa-face-smile"></i>
-                </button>
-                <div class="emote-popover" id="p2-emote-popover">
-                  <button class="btn-emote-opt" data-emote="gg">GG!</button>
-                  <button class="btn-emote-opt" data-emote="nice">Nice move!</button>
-                  <button class="btn-emote-opt" data-emote="oops">Oops...</button>
-                  <button class="btn-emote-opt" data-emote="calculated">Calculated.</button>
-                </div>
-              </div>
-            </div>
+            <h2 id="p2-name-display">Player 2</h2>
             <span class="player-color-name" id="p2-color-title">Cobalt Storm</span>
           </div>
         </div>

@@ -181,7 +181,7 @@ function showEmoteBubble(playerNum, emoteKey) {
   
   speechBubbleTimeouts[playerNum] = setTimeout(() => {
     bubble.classList.remove('show');
-  }, 2000);
+  }, 2500);
 }
 
 // Web Audio API Synthesizer (Premium Futuristic Sounds)
@@ -525,7 +525,11 @@ function updateLanguageDOM() {
     'btn-decline-text': dict.btnDeclineChallenge,
     'levelup-title': dict.levelupTitle,
     'levelup-subtitle': dict.levelupSubtitle,
-    'btn-levelup-close': dict.btnLevelupClose
+    'btn-levelup-close': dict.btnLevelupClose,
+    'btn-emote-gg': dict.emote_gg,
+    'btn-emote-nice': dict.emote_nice,
+    'btn-emote-oops': dict.emote_oops,
+    'btn-emote-calculated': dict.emote_calculated
   };
 
   for (const [id, text] of Object.entries(elMap)) {
@@ -706,13 +710,12 @@ function setupSocketListeners() {
     // Assign playing client color role based on socket connection ID
     if (socket.id === player1Socket) {
       state.myColor = 1;
-      document.getElementById('p1-emote-trigger').classList.remove('hidden');
-      document.getElementById('p2-emote-trigger').classList.add('hidden');
     } else if (socket.id === player2Socket) {
       state.myColor = 2;
-      document.getElementById('p2-emote-trigger').classList.remove('hidden');
-      document.getElementById('p1-emote-trigger').classList.add('hidden');
     }
+
+    // Show stationary online emotes panel
+    document.getElementById('emote-panel').classList.remove('hidden');
 
     // Initialize board caching
     lastStateBoard = JSON.parse(JSON.stringify(board));
@@ -754,12 +757,12 @@ function setupSocketListeners() {
   });
 
   // 4.6 Receive multiplayer emote
-  socket.on('receiveEmote', ({ socketId, emoteKey }) => {
+  socket.on('receiveEmote', ({ socketId, emote }) => {
     let senderNum = 1;
     if (socketId === state.player2Socket) {
       senderNum = 2;
     }
-    showEmoteBubble(senderNum, emoteKey);
+    showEmoteBubble(senderNum, emote);
   });
 
   // 5. Opponent disconnects during match
@@ -882,10 +885,7 @@ function initGame(mode) {
     document.getElementById('game-arena').classList.add('hidden');
     
     // Hide and reset all emotes elements
-    document.getElementById('p1-emote-trigger').classList.add('hidden');
-    document.getElementById('p2-emote-trigger').classList.add('hidden');
-    document.getElementById('p1-emote-popover').classList.remove('open');
-    document.getElementById('p2-emote-popover').classList.remove('open');
+    document.getElementById('emote-panel').classList.add('hidden');
     document.getElementById('p1-speech-bubble').classList.remove('show');
     document.getElementById('p2-speech-bubble').classList.remove('show');
 
@@ -1447,45 +1447,20 @@ if (btnLevelupClose) {
   });
 }
 
-// Emote triggers toggle
-const p1EmoteTrigger = document.getElementById('p1-emote-trigger');
-const p2EmoteTrigger = document.getElementById('p2-emote-trigger');
-const p1EmotePopover = document.getElementById('p1-emote-popover');
-const p2EmotePopover = document.getElementById('p2-emote-popover');
-
-if (p1EmoteTrigger) {
-  p1EmoteTrigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    p1EmotePopover.classList.toggle('open');
-  });
-}
-
-if (p2EmoteTrigger) {
-  p2EmoteTrigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    p2EmotePopover.classList.toggle('open');
-  });
-}
-
-// Close popovers when clicking anywhere else on page
-document.addEventListener('click', () => {
-  if (p1EmotePopover) p1EmotePopover.classList.remove('open');
-  if (p2EmotePopover) p2EmotePopover.classList.remove('open');
-});
-
-// Emote options clicks
-document.querySelectorAll('.emote-popover .btn-emote-opt').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
+// Emote options clicks - Neon Stationary panel
+document.querySelectorAll('.emote-panel .btn-emote-neon').forEach(btn => {
+  btn.addEventListener('click', () => {
     const emoteKey = btn.getAttribute('data-emote');
-    const popover = btn.closest('.emote-popover');
-    if (popover) {
-      popover.classList.remove('open');
-    }
     
-    // Show locally immediately and send to remote opponent
+    // Show locally immediately above our own panel
+    showEmoteBubble(state.myColor, emoteKey);
+
+    // Send emote to server
     if (state.socket && state.roomId) {
-      state.socket.emit('sendEmote', { emoteKey });
+      state.socket.emit('sendEmote', { 
+        emote: emoteKey, 
+        roomId: state.roomId 
+      });
     }
   });
 });
